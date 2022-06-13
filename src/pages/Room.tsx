@@ -1,8 +1,8 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useParams } from 'react-router-dom'
 import { database } from '../services/firebase'
-import { push, ref } from 'firebase/database'
+import { onValue, push, ref } from 'firebase/database'
 
 import logoImg from '../assets/images/logo.svg'
 import { Button } from '../components/Button'
@@ -19,6 +19,20 @@ export function Room() {
   const roomId = params.id
   const [newQuestion, setNewQuestion] = useState('')
   const { user } = useAuth()
+
+  useEffect(() => {
+    const roomRef = ref(database, `/rooms/${roomId}`)
+
+    onValue(
+      roomRef,
+      rooms => {
+        console.log(rooms.val())
+      },
+      {
+        onlyOnce: true
+      }
+    )
+  }, [])
 
   async function handleSendQuestion(event: FormEvent) {
     event.preventDefault()
@@ -42,6 +56,8 @@ export function Room() {
     }
 
     await push(ref(database, `/rooms/${roomId}/questions`), question)
+
+    setNewQuestion('')
   }
 
   return (
@@ -69,9 +85,16 @@ export function Room() {
           ></textarea>
 
           <div className="form-footer">
-            <span>
-              Para enviar uma pergunta, <button>faça seu login</button>.
-            </span>
+            {user ? (
+              <div className="user-info">
+                <img src={user.avatar} alt={user.name} />
+                <span>{user.name}</span>
+              </div>
+            ) : (
+              <span>
+                Para enviar uma pergunta, <button>faça seu login</button>.
+              </span>
+            )}
             <Button type="submit" disabled={!user}>
               Enviar pergunta
             </Button>
